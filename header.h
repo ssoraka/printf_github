@@ -25,3 +25,35 @@ typedef	struct		param_list
 	char			*answer;
 
 }					p_list;
+
+typedef enum	spec1
+{
+	NOTYPE = 0,
+	H,
+	L,
+	HH,
+	LL,
+	LF,
+	TYPESCOUNT
+}				spec;
+
+typedef	struct			parse_list
+{
+	char				*answer;
+	char				*data;
+	char				*temp;
+	struct	parse_list	*next;
+	int					num;
+	int					plus;
+	int					minus;
+	int					cage;
+	int					zero;
+	int					space;
+	long				width;
+	long				accur;
+	int					star1;
+	int					star2;
+	enum spec1			spec;
+	char				type;
+	char				captls;
+}						prs_lst;
