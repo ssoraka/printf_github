@@ -14,7 +14,7 @@ NAME1 = main
 SRC = /Users/ssoraka/Desktop/days/Libft/libft/libft.a
 
 all:
-	@gcc -o $(NAME1) $(SRC) upravlenie.c
+	@gcc -o $(NAME1) $(SRC) upravlenie.c ldtoa3.c
 	@/Users/ssoraka/Desktop/days/Libft/help_mat/clean
 	./$(NAME1)
 

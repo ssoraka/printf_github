@@ -56,4 +56,6 @@ typedef	struct			parse_list
 	enum spec1			spec;
 	char				type;
 	char				captls;
+	long				dvalue;
+	long double			fvalue;
 }						prs_lst;
