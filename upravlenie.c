@@ -18,6 +18,35 @@
 #define STAR -1
 
 
+char		*ft_itoa_base(long num, int base)
+{
+	char	temp[50];
+	int		znak;
+	char	chr;
+	unsigned long n;
+	size_t	i;
+
+	i = 0;
+	znak = 1;
+	n = num;
+	if (base > 16 || base < 2)
+		return (0);
+	if (base == 10 && num < 0)
+		znak = -1;
+	ft_bzero(temp, 50);
+	while (n != 0)
+	{
+		chr = n % base;
+		temp[i] = chr < 10 ? chr + '0' : chr + 'a' - 10;
+		n = n / base;
+		i++;
+	}
+	if (znak < 0)
+		temp[i] = '-';
+	ft_strrevers(temp);
+	return (ft_strdup(temp));
+}
+
 
 /*
 принимаем строчку
@@ -727,7 +756,7 @@ void		ft_return_chrtoa_to_answer(prs_lst *list)
 */
 void		ft_return_ltoa_to_answer(prs_lst *list)
 {
-	if (list->answer != NULL || ft_strchr("cspoxfeg",list->type) != NULL)
+	if (list->answer != NULL || ft_strchr("diu",list->type) == NULL)
 		return ;
 	if (list->type == 'u')
 	{
@@ -762,13 +791,10 @@ char		*ft_ldtoa_final_g(long double ld, int accuracy);
 
 void		ft_return_ldtoa_to_answer(prs_lst *list)
 {
-	//ft_putchar(list->type);
-	//ft_putstr(list->answer);
-	//ft_putchar(list->type);
-	//ft_putstr("1\n");
 	if (list->answer != NULL || ft_strchr("feg",list->type) == NULL)
 		return ;
-	//ft_putstr("2\n");
+	if (list->spec != NOTYPE && list->spec != L && list->spec != LF)
+		ft_putstr("error\n");// exit(-1)
 	if (list->accur < 0)
 		list->accur = 6; //стандартное округление до 6-и знаков
 	if (list->type == 'f')
@@ -777,7 +803,36 @@ void		ft_return_ldtoa_to_answer(prs_lst *list)
 		list->answer = ft_ldtoa_final_e1(list->fvalue, list->accur, 0);
 	if (list->type == 'g')
 		list->answer = ft_ldtoa_final_g(list->fvalue, list->accur);
+	if (ft_strchr(list->answer,'n'))
+	{
+		list->accur = -1;
+		list->type = 's';
+	}
 }
+
+
+/*
+**	помещает в ответ строку из числа в 8-иричной или 16-ричной форме
+*/
+void		ft_return_oxtoa_to_answer(prs_lst *list)
+{
+	int		base;
+
+	base = 8;
+	if (list->answer != NULL || ft_strchr("ox",list->type) == NULL)
+		return ;
+	if (list->type == 'x')
+		base = 16;
+	if (list->spec == NOTYPE)
+		list->answer = ft_itoa_base((unsigned int)list->dvalue, base);
+	else if (list->spec == H)
+		list->answer = ft_itoa_base((unsigned short)list->dvalue, base);
+	else if (list->spec == HH)
+		list->answer = ft_itoa_base((unsigned char)list->dvalue, base);
+	else
+		list->answer = ft_itoa_base((unsigned char)list->dvalue, base);
+}
+
 
 /*
 **	добавляет кучу пробелов слева или справа от числа в зависимости от флага "-"
@@ -836,9 +891,20 @@ char	*ft_num_get_cage(char *str, int cage, char type)
 	if (cage == 0 || !str)
 		return(str);
 	if (type == 'o')
-		return(ft_strjoin_free("0", str, 0, 1));
+		if (str[0] != '0')
+			return(ft_strjoin_free("0", str, 0, 1));
 	if (type == 'x')
-		return(ft_strjoin_free("0x", str, 0, 1));
+	{
+		if (str[0] == '0' && str[1] == '0')
+			str[1] = 'x';
+		else if (str[0] == '0' && str[1] != '0')
+		{
+			str[0] = 'x';
+			return(ft_strjoin_free("0", str, 0, 1));
+		}
+		else if (str[0] != '0')
+			return(ft_strjoin_free("0x", str, 0, 1));
+	}
 	return(str);
 }
 
@@ -856,7 +922,7 @@ char	*ft_num_stretch_zero(char *str, int width, int zero)
 	znak = '0';
 	if (width <= len || zero == 0)
 		return (str);
-	if (ft_isdigit(str[0]) == 0 && str[0] != '%')
+	if (str[0] == '-' || str[0] == '+' || str[0] == ' ')
 	{
 		znak = str[0];
 		str[0] = '0';
@@ -910,16 +976,12 @@ void	ft_change_flags(prs_lst *list)
 		list->width = -(list->width);
 		list->minus = 1;
 	}
-	if (ft_strchr("cspox",list->type) != NULL)
-	{
-		list->plus = 0;
-		list->zero = 0;
-	}
 	if (ft_strchr("cspox%",list->type) != NULL)
-	{
 		list->plus = 0;
+	if (ft_strchr("csp",list->type) != NULL)
+		list->zero = 0;
+	if (ft_strchr("cspox%",list->type) != NULL)
 		list->space = 0;
-	}
 	if (ft_strchr("cspdiufeg",list->type) != NULL)
 		list->cage = 0;
 	if (list->plus == 1)
@@ -937,7 +999,7 @@ void	ft_apply_flags_to_answer(prs_lst *list)
 	//	return ;
 	//ft_putstr(list->answer);
 	//ft_putstr("\n");
-	list->answer = ft_num_get_cage(list->answer, list->cage, list->type);
+
 	list->answer = ft_num_get_znak(list->answer, list->plus);
 	//ft_putstr(list->answer);
 	//ft_putstr("\n");
@@ -945,6 +1007,7 @@ void	ft_apply_flags_to_answer(prs_lst *list)
 
 	list->answer = ft_num_get_space(list->answer, list->space);
 	list->answer = ft_num_stretch_zero(list->answer, list->width, list->zero);
+	list->answer = ft_num_get_cage(list->answer, list->cage, list->type);
 	list->answer = ft_num_stretch_spaces(list->answer, list->width, list->minus);
 	//ft_putstr(str);
 	//ft_putstr("\n");
@@ -981,8 +1044,9 @@ void var(char *format, ...)
 	//print_list2(list);
 
 	ft_listiter(list, &ft_return_ltoa_to_answer); //числа переводим в строку
-	ft_listiter(list, &ft_return_ldtoa_to_answer); //числа c точкой переводим в строку
 	ft_listiter(list, &ft_return_chrtoa_to_answer); //чары переводим в строку
+	ft_listiter(list, &ft_return_oxtoa_to_answer); //чары переводим в строку
+	ft_listiter(list, &ft_return_ldtoa_to_answer); //числа c точкой переводим в строку
 	ft_listiter(list, &ft_change_flags); //корректировка флагов
 	ft_listiter(list, &ft_apply_flags_to_answer);
 
@@ -1041,6 +1105,7 @@ void var(char *format, ...)
 
 int main(void)
 {
+	char c = -1;
 	int t = -10;
 	//char *str = "12311";
 	char *s = "123";
@@ -1050,12 +1115,20 @@ int main(void)
 	void *p;
 	long double f1 = 1010010.512351;
 	int chr = 20000;
-	char *str = "%f\n";
+	char *str = "% 030f\n";
 	unsigned int ud = -1;
 	unsigned short ul = -1;
 	long long int d = -1;
 
-	float ld = -0.0;
+	float ld = 10000000000000000000000000000000000000000000000.0;
+
+	ld = ld * ld ;
+	ld = ld * ld ;
+	ld = ld * ld ;
+	ld = ld * ld ;
+	ld = ld * ld ;
+	ld = ld * ld ;
+	ld = -ld;
 
 	//ft_strparse(str);
 	//printf("___%-10.1d___\n",999);
@@ -1073,6 +1146,7 @@ int main(void)
 	var(str, ld);
 //printf("___%*d___\n", (double)1.1,t);
 	printf(str, ld);
+	//printf("%lo\n", t1);
 	/////ft_putstr(ft_bytes_to_bits((char *)(&str), sizeof(str), "__"));
 
 	//ft_putstr(ft_bytes_to_bits((char *)(&(t2)), sizeof(t2), "__"));
