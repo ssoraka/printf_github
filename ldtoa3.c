@@ -14,7 +14,7 @@
 #include "header.h"
 
 #define  TEST55
-#define  ACC 5
+#define  ACC 20
 
 /* прибавляем строку чаров к другой строке */
 void	ft_summ_str_str(char *answer, char *str, int shift);
@@ -262,9 +262,9 @@ void	ft_round_str_num2(char **answer, int accuracy, int type_g)
 	char	*str;
 	int		n;
 
+	//printf("%s\n", *answer);
 	str = ft_strchr(*answer, '.');
 	str = !(str) ? *answer : str;
-
 	if (str[accuracy + 1] > '4')// && (type_g == 0 || (type_g == 1 && str[accuracy] > '0')))
 	{
 		//printf("%s\n", str);

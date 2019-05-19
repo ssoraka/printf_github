@@ -95,6 +95,7 @@ prs_lst	*ft_create_elem(char *data)
 	p->type = 0;
 	p->captls = 0;
 	p->num = 0;
+	p->count_symb = 0;
 	return(p);
 }
 
@@ -146,6 +147,8 @@ prs_lst	*ft_str_to_list(char *str)
 
 	pos = 0;
 	begin_list = NULL;
+	if (!str[0])
+		ft_list_push_back(&begin_list, ft_strdup(""));
 	while (str[0])
 	{
 		pos = ft_find_end_of_str(str);
@@ -172,7 +175,7 @@ int		ft_find_end_of_str(char *str)
 		return (ft_strlen(str));
 	if (end > str)
 		return (end - str);
-	ft_strcpy(find, "%cspDdiOouUxXfeEgG");
+	ft_strcpy(find, "%cCsSpDdiOouUxXfeEgGbB");
 	str++;
 	end = &(str[ft_strlen(str)]);
 	i = 0;
@@ -202,7 +205,7 @@ void		ft_find_spec(prs_lst *list);
 void		ft_listiter(prs_lst *lst, void (*f)(prs_lst *elem));
 void		ft_change_lists(prs_lst *list);
 int			ft_find_errors(prs_lst *list);
-void		ft_get_number_of_arg(prs_lst *list, int *num);
+void		ft_get_number_of_arg(prs_lst *list);
 /*
 **	устанавливает тип для фрагмента строки в листе
 */
@@ -219,6 +222,11 @@ void		ft_find_type(prs_lst *list)
 		list->captls = 1;
 	}
 	if (list->type == 'D' || list->type == 'O' || list->type == 'U')
+	{
+		list->type = list->type - 'A' + 'a';
+		list->spec = L;
+	}
+	if (list->type == 'S' || list->type == 'C')
 	{
 		list->type = list->type - 'A' + 'a';
 		list->spec = L;
@@ -323,14 +331,22 @@ void		ft_find_accuracy(prs_lst *list)
 void	ft_find_spec(prs_lst *list)
 {
 	int		i;
+	char	specf[8][4];
 
 	i = 0;
-	char name[6][3]= {"", "h", "l", "hh", "ll", "L"};
+	ft_strcpy(specf[0], "");
+	ft_strcpy(specf[1], "h");
+	ft_strcpy(specf[2], "l");
+	ft_strcpy(specf[3], "hh");
+	ft_strcpy(specf[4], "ll");
+	ft_strcpy(specf[5], "z");
+	ft_strcpy(specf[6], "j");
+	ft_strcpy(specf[7], "L");
 	if (!(list->temp) || !(*(list->temp)))
 		return ;
 	while(i < TYPESCOUNT)
 	{
-		if (!(ft_strcmp(name[i], list->temp)))
+		if (!(ft_strcmp(specf[i], list->temp)))
 		{
 			if (list->spec == NOTYPE)
 				list->spec = i;
@@ -363,26 +379,22 @@ void	ft_listiter(prs_lst *lst, void (*f)(prs_lst *elem))
 */
 void	ft_change_lists(prs_lst *list)
 {
-	int		i;
-
-	i = 1;
-	//надо бы все это соединить в 1 функцию, которая будет всю эту работу
-	//совершать в каждом узле, а не спускаться по от узла к узлу каждый раз...
+/*
 	ft_listiter(list, &ft_find_flags);
-	//print_list(list);
 	ft_listiter(list, &ft_find_type);
-	//print_list(list);
 	ft_listiter(list, &ft_find_width);
-	//print_list(list);
 	ft_listiter(list, &ft_find_accuracy);
-	//print_list(list);
 	ft_listiter(list, &ft_find_spec);
-	//print_list(list);
-	ft_get_number_of_arg(list, &i);
-	//print_list(list);
-	if (ft_find_errors(list))
-		exit(-1);
-		//////////ft_putstr("errors\n");
+	ft_listiter(list, &ft_get_number_of_arg);
+*/
+
+	ft_find_flags(list);
+	ft_find_type(list);
+	ft_find_width(list);
+	ft_find_accuracy(list);
+	ft_find_spec(list);
+	ft_get_number_of_arg(list);
+
 }
 
 /*
@@ -394,7 +406,7 @@ int		ft_find_errors(prs_lst *list)
 	size_t	i;
 	int		error;
 
-	ft_strcpy(find, "%cspdiouxfeg");
+	ft_strcpy(find, "%cspdiouxfegbB");
 	if (list == 0)
 		return (1);
 	while (list != NULL)
@@ -416,33 +428,34 @@ int		ft_find_errors(prs_lst *list)
 	return (0);
 }
 
+
 /*
 **	присваиваем номер аргумента
 */
-void	ft_get_number_of_arg(prs_lst *list, int *num)
+void	ft_get_number_of_arg(prs_lst *list)
 {
-	while (list != NULL)
+	static int num;
+
+	if (num == 0)
+		num++;
+	if (list->star1 == STAR)
 	{
-		if (list->star1 == STAR)
-		{
-			list->star1 = *num;
-			(*num)++;
-		}
-		else if (list->star1 > 0)
-			*num = list->star1 + 1;
-		if (list->star2 == -1)
-		{
-			list->star2 = *num;
-			(*num)++;
-		}
-		else if (list->star2 > 0)
-			*num = list->star2 + 1;
-		if (list->type && list->type != '%')
-		{
-			list->num = *num;
-			(*num)++;
-		}
-		list = list->next;
+		list->star1 = num;
+		num++;
+	}
+	else if (list->star1 > 0)
+		num = list->star1 + 1;
+	if (list->star2 == -1)
+	{
+		list->star2 = num;
+		num++;
+	}
+	else if (list->star2 > 0)
+		num = list->star2 + 1;
+	if (list->type && list->type != '%')
+	{
+		list->num = num;
+		num++;
 	}
 }
 
@@ -589,7 +602,7 @@ int		ft_args_are_not_similar(prs_lst *arg, long num, char type, char spec)
 		arg->spec = spec;
 		return (0);
 	}
-	if(arg->type == '*' && ft_strchr("cspdioux",type))
+	if(arg->type == '*' && ft_strchr("cspdiouxb",type))
 	{
 		arg->type = type;
 		arg->spec = spec;
@@ -612,7 +625,7 @@ int		ft_lists_are_different(prs_lst *list, prs_lst *arg)
 	{
 		if (ft_args_are_not_similar(arg, list->star1, '*', L))
 			return (1);//вернуть ошибку
-		if (ft_args_are_not_similar(arg, list->star1, '*', L))
+		if (ft_args_are_not_similar(arg, list->star2, '*', L))
 			return (1);//вернуть ошибку
 		if (ft_args_are_not_similar(arg, list->num, list->type, list->spec))
 			return (1);//вернуть ошибку
@@ -637,14 +650,22 @@ long	ft_return_arg(va_list ap, int arg_numb, prs_lst *l_args)
 	dnum = 0;
 	while (i <= arg_numb)
 	{
-		if (ft_strchr("cspdioux*",l_args->type))
-			dnum = (long)va_arg (arg, long);
+		if (ft_strchr("cspdiouxb*",l_args->type))// || (l_args->type == 'b' && l_args->spec != LF))
+		{
+			if (l_args->spec != LF)
+				dnum = (long)va_arg (arg, long);
+			else
+				exit(2);
+		}
+		if (l_args->type == 'c' && (dnum & 0xffffffffffffff00l) == 0x00000000ffffff00l)
+			dnum = dnum + 0x0000000000000100l;
 		l_args = l_args->next;
 		i++;
 	}
 	va_end (arg);
 	return (dnum);
 }
+
 
 /*
 **	возвращаем long double аргумент под соответствующим номером
@@ -660,14 +681,14 @@ long double	ft_return_argf(va_list ap, int arg_numb, prs_lst *l_args)
 	fnum = 0;
 	while (i <= arg_numb)
 	{
-		if (ft_strchr("feg",l_args->type))
+		if (ft_strchr("fegB",l_args->type))// || (l_args->type == 'b' && l_args->spec == LF))
 		{
 			if(l_args->spec == LF)
 				fnum = (long double)va_arg (arg, long double);
 			else if(l_args->spec == L || l_args->spec == NOTYPE)
 				fnum = (long double)va_arg (arg, double);
 			else
-				ft_putstr("error\n");
+				ft_putstr("error1\n");
 				//exit(-1);
 		}
 		l_args = l_args->next;
@@ -697,9 +718,9 @@ void	ft_get_stars(va_list ap, prs_lst *list, prs_lst *args)
 		list->star2 = 0;
 		list->dvalue = 0; //не поместилось в создании узла
 		list->fvalue = 0; //воможно нужен юнион
-		if (ft_strchr("cspdioux",list->type))
+		if (ft_strchr("cspdiouxb",list->type))// || (list->type == 'b' && list->spec != LF))
 			list->dvalue = ft_return_arg(ap, list->num, args);
-		if (ft_strchr("feg",list->type))
+		if (ft_strchr("fegB",list->type))// || (list->type == 'b' && list->spec == LF))
 			list->fvalue = ft_return_argf(ap, list->num, args);
 		list = list->next;
 	}
@@ -713,28 +734,38 @@ void	ft_get_stars(va_list ap, prs_lst *list, prs_lst *args)
 char		*ft_chrtoa(unsigned int chr)
 {
 	char str[5];
+	//char chr = uchr;
 
 	ft_bzero(str, 5);
+	//printf("%u\n", chr);
+	//chr = 196;
+	//printf("%d\n", chr);
+	//ft_putendl(ft_bytes_to_bits((char *)(&chr), 8, "__"));
 	if (chr < 128)
 		str[0] = (unsigned char)chr;
-	else if (chr < 2048)
+	//else if (chr > chr < 2048 && chr >= 192 )
+	else if (chr < 2048 )
 	{
 		str[0] = (unsigned char)(chr >> 6) + 0xc0;
 		str[1] = (unsigned char)(chr & 0x0000003f) + 0x80;
+	//ft_putendl(ft_bytes_to_bits((char *)(&str), 2, "__"));
+	//ft_putendl(str);
 	}
-	else if (chr < 65536 && (chr < 55296 || chr > 57343))
+	else if (chr > 2047 && chr < 65536 && (chr < 55296 || chr > 57343))
 	{
 		str[0] = (unsigned char)(chr >> 12) + 0xe0;
 		str[1] = (unsigned char)((chr >> 6) & 0x0000003f) + 0x80;
 		str[2] = (unsigned char)(chr & 0x0000003f) + 0x80;
 	}
-	else
+	else if (chr > 65535)
 	{
 		str[0] = (unsigned char)((chr >> 18) & 0x00000007) + 0xf0;
 		str[1] = (unsigned char)((chr >> 12) & 0x0000003f) + 0x80;
 		str[2] = (unsigned char)((chr >> 6) & 0x0000003f) + 0x80;
 		str[3] = (unsigned char)(chr & 0x0000003f) + 0x80;
 	}
+	//ft_putendl(ft_bytes_to_bits((char *)(&str), 4, "__"));
+
 	return (ft_strdup(str));
 }
 
@@ -763,6 +794,27 @@ char	*ft_ptrtoa(long num)
 	return (ft_strdup(str));
 }
 
+/*
+**	помещает в ответ строку из чара
+*/
+char	*ft_wchrtoa(char *str, int spec)
+{
+	wchar_t *ptr;
+
+	if (spec < L)
+		return (ft_strdup(str));
+
+	ft_memcpy((void *)(&ptr), (void *)(&str), 8);
+	str = ft_strdup(str);
+	//printf("%p\n%p", str, ptr);
+	while (*ptr)
+	{
+		str = ft_strjoin_free(str, ft_chrtoa(*ptr), 1, 1);
+		ptr++;
+	}
+	return (str);
+}
+
 
 /*
 **	помещает в ответ строку из чара
@@ -770,15 +822,26 @@ char	*ft_ptrtoa(long num)
 void		ft_return_chrtoa_to_answer(prs_lst *list)
 {
 	char *str;
+
 	if (list->type == '%')
 		list->answer = ft_chrtoa('%');
 	if (list->type == 'c')
-		list->answer = ft_chrtoa(list->dvalue);
+	{
+		list->answer = ft_chrtoa((int)list->dvalue);
+		if (list->dvalue == 0)
+			list->count_symb++;
+		if (list->accur > 0)
+			list->accur = list->accur - list->count_symb;
+		if (list->width > 0)
+			list->width = list->width - list->count_symb;
+	}
 	if (list->type == 's')
 	{
 		*((long *)(&str)) = list->dvalue;
-		list->answer = ft_strdup(str);
-		//ft_putstr(ft_bytes_to_bits((char *)(&str), sizeof(str), "__"));
+		if (str == NULL)
+			list->answer = ft_strdup("(null)");
+		else
+			list->answer = ft_wchrtoa(str, list->spec);//ft_strdup(str);
 	}
 	if (list->type == 'p')
 		list->answer = ft_ptrtoa(list->dvalue);
@@ -923,25 +986,27 @@ char	*ft_num_get_znak(char *str, int plus)
 /*
 **	добавляет 0 или 0х для 8-иричной и 16-иричной сс в зависимости от флага "#"
 */
-char	*ft_num_get_cage(char *str, int cage, char type)
+char	*ft_num_get_cage(char *str, int cage, char type, int accur)
 {
-	if (cage == 0 || !str || !(ft_strcmp(str, "0")) || (!str[0] && type == 'x'))
+	if (cage == 0 || !str || !(ft_strcmp(str, "0")))
 		return(str);
 	if (type == 'o')
 		if (str[0] != '0')
 			return(ft_strjoin_free("0", str, 0, 1));
-	if (type == 'x')
+	if (type == 'x' || type == 'p')
 	{
-		if (str[0] == '0' && str[1] == '0')
+		if (str[0] == '0' && str[1] == '0' && accur < 0)
 			str[1] = 'x';
-		else if (str[0] == '0' && str[1] != '0')
+		else if (str[0] == '0' && str[1] != '0' && accur < 0)
 		{
 			str[0] = 'x';
 			return(ft_strjoin_free("0", str, 0, 1));
 		}
-		else if (str[0] != '0')
+		else //if (str[0] != '0')
 			return(ft_strjoin_free("0x", str, 0, 1));
 	}
+	if (ft_strchr("feg", type) != NULL && ft_strchr(str, '.') == NULL)
+		return(ft_strjoin_free(str, ".", 1, 0));
 	return(str);
 }
 
@@ -959,8 +1024,10 @@ char	*ft_num_stretch_zero(char *str, int width, int zero, int accur)
 	if (!ft_strcmp(str, "0") && accur == 1 && width == 0)
 		str[0] = '\0';
 	len = ft_strlen(str);
-	if (str[0] && !ft_isdigit(str[0]) && accur == 1)
+	//if (str[0] && !ft_isdigit(str[0]) && accur == 1)
+	if (str[0] && (str[0] == '-' || str[0] == '+' || str[0] == ' ') && accur == 1)
 		len--;
+	//printf("%d__%d\n", len, width);
 	if (width <= len || zero == 0)
 		return (str);
 	if (str[0] == '-' || str[0] == '+' || str[0] == ' ')
@@ -972,6 +1039,7 @@ char	*ft_num_stretch_zero(char *str, int width, int zero, int accur)
 	zeros = ft_strnew(width);
 	ft_memset((void *)zeros, '0', width);
 	zeros[0] = znak;
+	//printf("%s\n", str);
 	return (ft_strjoin_free(zeros, str, 1, 1));
 }
 
@@ -993,6 +1061,29 @@ char	*ft_get_answer(prs_lst *list)
 	return (answer);
 }
 
+
+/*
+**	собираем все строки ответов
+*/
+int		ft_put_answer(prs_lst *list)
+{
+	int		count;
+
+	count = 0;
+	while (list != NULL)
+	{
+		list->count_symb = list->count_symb + ft_strlen(list->answer);
+		//printf("%d\n", list->count_symb);
+		write(1, list->answer, list->count_symb);
+		free(list->answer);
+		list->answer = NULL;
+		count = count + list->count_symb;
+		list = list->next;
+	}
+	return (count);
+}
+
+
 /*
 **	укорачиваем строку по точности
 */
@@ -1000,6 +1091,8 @@ char	*ft_cut_str(char *str, int accur, int type)
 {
 	int len;
 
+	if (ft_strchr("di", type) && !ft_strcmp(str, "0") && accur == 0)
+		str[0] = '\0';
 	if (type != 's')
 		return (str);
 	len = ft_strlen(str);
@@ -1019,18 +1112,19 @@ void	ft_change_flags(prs_lst *list)
 		list->width = -(list->width);
 		list->minus = 1;
 	}
-	if (ft_strchr("cspoxu%",list->type) != NULL)
+	if (ft_strchr("cspoxubB%",list->type) != NULL)
 		list->plus = 0;
-	if (ft_strchr("csp",list->type) != NULL)
+	if (ft_strchr("spcbB",list->type) != NULL)
 		list->zero = 0;
-	if (ft_strchr("cspoxu%",list->type) != NULL)
+	if (ft_strchr("cspoxubB%",list->type) != NULL)
 		list->space = 0;
-	if (ft_strchr("cspdiufeg",list->type) != NULL)
+	if (ft_strchr("cspdiuebB",list->type) != NULL)
 		list->cage = 0;
-	if (ft_strchr("diu",list->type) != NULL && list->accur >= 0)
+	if (list->type == 'x' && ft_strcmp(list->answer, "0") == 0)
+		list->cage = 0;
+	if (ft_strchr("diuox",list->type) != NULL && list->accur >= 0)
 	{
 		list->zero = 0;
-		list->space = 0;
 	}
 	if (list->plus == 1)
 		list->space = 0;
@@ -1065,17 +1159,22 @@ void	ft_apply_flags_to_answer(prs_lst *list)
 	//ft_putstr(list->answer);
 	//ft_putstr("\n");
 
+	list->answer = ft_cut_str(list->answer, list->accur, list->type);
 	list->answer = ft_num_get_znak(list->answer, list->plus);
 	//ft_putstr(list->answer);
 	//ft_putstr("\n");
-	list->answer = ft_cut_str(list->answer, list->accur, list->type);
+
 
 	list->answer = ft_num_get_space(list->answer, list->space);
+
 	list->answer = ft_num_stretch_zero(list->answer, list->width, list->zero, 0);
 	if (ft_strchr("diuox",list->type) != NULL)
 		list->answer = ft_num_stretch_zero(list->answer, list->accur, 1, 1);
-	list->answer = ft_num_get_cage(list->answer, list->cage, list->type);
+
+	list->answer = ft_num_get_cage(list->answer, list->cage, list->type, list->accur);
+
 	list->answer = ft_num_stretch_spaces(list->answer, list->width, list->minus);
+
 	if (list->captls == 1)
 		list->answer = ft_strupcase(list->answer);
 	//ft_putstr(str);
@@ -1083,18 +1182,132 @@ void	ft_apply_flags_to_answer(prs_lst *list)
 
 }
 
+
+/*
+**	ищем и заменяем цвет
+*/
+
+void	ft_replace(char *str, char *repls, int num)
+{
+	char	color[10];
+	size_t	i;
+	size_t	len;
+
+	ft_strcpy(color, "\033[00m");
+	if (num < EOC)
+	{
+		color[2] = '3';
+		color[3] = color[3] + num ;
+	}
+	len = ft_strlen(repls);
+	ft_memmove(str + 5, str + len, ft_strlen(str + len) + 1);
+	ft_memcpy(str, color, 5);
+}
+
+
+/*
+**	ищем и заменяем цвет
+*/
+
+void	ft_give_color(prs_lst *list)
+{
+	char	color[9][20];
+	int		i;
+	char	*str;
+
+	if (list->type != 0 || !(list->answer))
+		return ;
+	if (!(ft_strchr(list->answer, '{')) || !(ft_strchr(list->answer, '}')))
+		return ;
+	i = 0;
+	ft_strcpy(color[0], "{black}");
+	ft_strcpy(color[1], "{red}");
+	ft_strcpy(color[2], "{green}");
+	ft_strcpy(color[3], "{yellow}");
+	ft_strcpy(color[4], "{blue}");
+	ft_strcpy(color[5], "{magenta}");
+	ft_strcpy(color[6], "{cyan}");
+	ft_strcpy(color[7], "{white}");
+	ft_strcpy(color[8], "{eoc}");
+	while (i < 9)
+	{
+		if ((str = ft_strstr(list->answer, color[i])) != NULL)
+			ft_replace(str, color[i], i);
+		i++;
+	}
+}
+
+/*
+**	возвращает количество байт в зависимости от спецификатора
+*/
+int		ft_size_from_spec(int spec, int ldfloat)
+{
+	int		size;
+
+	if (spec == LF && ldfloat == 1)
+		size = 16;
+	else if (spec == H && ldfloat == 0)
+		size = 2;
+	else if (spec == HH && ldfloat == 0)
+		size = 1;
+	else if (spec == NOTYPE)
+		size = 4;
+	else
+		size = 8;
+	return (size);
+}
+
+/*
+**	укорачиваем строку по точности
+*/
+void	ft_return_btoa_to_answer(prs_lst *list)
+{
+	int		size;
+	char	*ptr;
+	float	f;
+	double	d;
+
+	f = (float)(list->fvalue);
+	d = (double)(list->fvalue);
+	if (list->type != 'b' && list->type != 'B')
+		return ;
+	if (list->type == 'B')
+		size = ft_size_from_spec(list->spec, 1);
+	else
+		size = ft_size_from_spec(list->spec, 0);
+	if (list->type == 'b')
+		ptr = (char *)(&(list->dvalue));
+	else if (list->type == 'B' && list->spec == LF)
+		ptr = (char *)(&(list->fvalue));
+	else if (list->type == 'B' && list->spec == L)
+		ptr = (char *)(&d);
+	else
+		ptr = (char *)(&f);
+	list->answer = ft_bytes_to_bits(ptr, size, "  ");
+	list->answer[ft_strlen(list->answer) - 1] = '\0';
+}
+
+
 /*
 **	формируем строки для печати у всех элементов списка
 */
+
 void	ft_create_answers(prs_lst *list)
 {
-	ft_listiter(list, &ft_return_ltoa_to_answer); //числа переводим в строку
-	ft_listiter(list, &ft_return_chrtoa_to_answer); //чары переводим в строку
-	ft_listiter(list, &ft_return_oxtoa_to_answer); //чары переводим в строку
-	ft_listiter(list, &ft_return_ldtoa_to_answer); //числа c точкой переводим в строку
-	ft_listiter(list, &ft_change_flags); //корректировка флагов
-	ft_listiter(list, &ft_apply_flags_to_answer);
+	ft_return_btoa_to_answer(list); //числа переводим в двоичный код
+
+	ft_return_ltoa_to_answer(list); //числа переводим в строку
+
+	ft_return_chrtoa_to_answer(list); //чары переводим в строку
+	ft_return_oxtoa_to_answer(list); //чары переводим в строку
+	ft_return_ldtoa_to_answer(list); //числа c точкой переводим в строку
+	ft_change_flags(list); //корректировка флагов
+
+	ft_apply_flags_to_answer(list);
+
+	ft_give_color(list);
 }
+
 
 
 int		ft_printf(char *format, ...)
@@ -1103,10 +1316,15 @@ int		ft_printf(char *format, ...)
 	prs_lst	*list;
 
 	list = ft_str_to_list(format);
-	//////print_list(list);
-	ft_change_lists(list);
+	//print_list(list);
 
-	//////print_list(list);
+//return(0);
+	//exit(0);
+	//ft_change_lists(list);
+	ft_listiter(list, &ft_change_lists);
+	if (ft_find_errors(list))
+		exit(-1);
+	//print_list(list);
 	va_start(ap, format);
 
 	/*узнаем последовательность аргументов*/
@@ -1115,30 +1333,33 @@ int		ft_printf(char *format, ...)
 	args = ft_return_list_of_args(list);
 
 	#ifdef TEST
-	print_list(args);
+	//print_list(args);
 	#endif
 
-
+	//print_list(args);
 	if (args != NULL && ft_lists_are_different(list, args))
-		exit(-1);
+		exit(3);
 		/////ft_putstr("errors\n");
-	//////print_list(args);
+	//print_list(args);
 	//printf("%p\n", args);
+
 	ft_get_stars(ap, list, args); //возвращаем длины и точности по номерам аргументов
 	va_end (ap);
 	//////print_list1(list);
 	//print_list2(list);
 
-	ft_create_answers(list);
+	//ft_create_answers(list);
+	ft_listiter(list, &ft_create_answers);
 	#ifdef TEST
 	print_list3(list);
 	#endif
 
 	char	*str;
 	size_t	len;
-	str = ft_get_answer(list); //собираем все ответы и в 1 и печатаем их
-	ft_putstr(str);
-	len = ft_strlen(str);
+	//str = ft_get_answer(list); //собираем все ответы и в 1 и печатаем их
+	//ft_putstr(str);
+	//len = ft_strlen(str);
+	len = ft_put_answer(list);
 	ft_listdel(&list);
 	ft_listdel(&args);
 	//print_list(list);

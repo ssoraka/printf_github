@@ -33,9 +33,24 @@ typedef enum	spec1
 	L,
 	HH,
 	LL,
+	Z,
+	J,
 	LF,
 	TYPESCOUNT
 }				spec;
+
+typedef enum	colors
+{
+	BLACK = 0,
+	RED,
+	GREEN,
+	YELLOW,
+	BLUE,
+	MAGENTA,
+	CYAN,
+	WHITE,
+	EOC
+}				color;
 
 typedef	struct			parse_list
 {
@@ -55,6 +70,7 @@ typedef	struct			parse_list
 	int					star2;
 	enum spec1			spec;
 	char				type;
+	int					count_symb;
 	char				captls;
 	long				dvalue;
 	long double			fvalue;

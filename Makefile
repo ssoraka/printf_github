@@ -11,17 +11,18 @@
 #******************************************************************************#
 
 NAME1 = main
-SRC = /Users/ssoraka/Desktop/days/Libft/libft/libft.a
+NAME2 = libftprintf.a
+SRC1 = /Users/ssoraka/Desktop/days/Libft/libft/libft.a
+SRC2 = /Users/ssoraka/Desktop/days/Libft/libft/*.o
 
 all:
-	@gcc -o $(NAME1) $(SRC) main.c upravlenie.c ldtoa3.c
+	@gcc -o $(NAME1) $(SRC1) main.c upravlenie.c ldtoa3.c
 	@/Users/ssoraka/Desktop/days/Libft/help_mat/clean
 	./$(NAME1)
 
 go:
-	gcc -o $(NAME2) *.c
-#	.//Users/ssoraka/Desktop/days/Libft/вспомогательные\ материалы/clean1
-	./$(NAME2)
+	@gcc -c upravlenie.c ldtoa3.c
+	@ar rc  $(NAME2) $(SRC2) upravlenie.o ldtoa3.o
 
 norm:
 	norminette -R CheckForbiddenSourceHeader
